@@ -2,7 +2,7 @@
 
 set -e
 
-tagcount=$(git tag | wc -l)
-tagcount=$((tagcount+1))
+tagcount="$(git tag | wc -l)"
+tagcount="$((tagcount + 1))"
 
-echo $tagcount
+printf '%s\n' "${tagcount}"

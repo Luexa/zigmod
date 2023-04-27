@@ -1,47 +1,40 @@
 #!/bin/sh
 
-set -e
+set -eu
 
-readlog() {
-    git log --format=format:"%h%n%H%n%an%n%s%n%d%n"
+readlog () {
+    git log --format='format:%h%n%H%n%an%n%s%n%d%n'
 }
 
-PROJECT_USERNAME=$(echo $GITHUB_REPOSITORY | cut -d'/' -f1)
-PROJECT_REPONAME=$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)
+PROJECT_USERNAME="$(printf '%s' "${GITHUB_REPOSITORY}" | cut -d'/' -f1)"
+PROJECT_REPONAME="$(printf '%s' "${GITHUB_REPOSITORY}" | cut -d'/' -f2)"
 
-hash_abrev=''
-hash=''
-author=''
-title=''
+unset -v hash_abbrev hash author title
 
 c=0
 t=0
 readlog |
 while IFS= read -r lineVAR; do
-    if [[ "$c" == '0' ]]; then
-        hash_abrev="$lineVAR"
-    fi
-    if [[ "$c" == '1' ]]; then
-        hash="$lineVAR"
-    fi
-    if [[ "$c" == '2' ]]; then
-        author="$lineVAR"
-    fi
-    if [[ "$c" == '3' ]]; then
-        title="$lineVAR"
-    fi
-    if [[ "$c" == '4' ]]; then
-        if [ ! -z "$lineVAR" ]; then
-            t=$(($t+1))
-        fi
-        if [[ "$t" == '2' ]]; then
-            break
-        fi
-        echo "<li><a href='https://github.com/nektro/$PROJECT_REPONAME/commit/$hash'><code>$hash_abrev</code></a> $title ($author)</li>"
-    fi
-    c=$(($c+1))
-    #
-    if [[ "$c" == '6' ]]; then
-        c=0
-    fi
+    case "${c}" in
+        '0') hash_abbrev="${lineVAR}" ;;
+        '1') hash="${lineVAR}" ;;
+        '2') author="${lineVAR}" ;;
+        '3') title="${lineVAR}" ;;
+        '4')
+            if [ -n "${lineVAR:+n}" ]; then
+                t="$((t + 1))"
+            fi
+            if [ "${t}" -ge 2 ]; then
+                break
+            fi
+            printf '<li><a href='\''https://github.com/%s/%s/commit/%s'\''<code>%s</code></a> %s (%s)</li>\n' \
+                "${PROJECT_USERNAME}" \
+                "${PROJECT_REPONAME}" \
+                "${hash}" \
+                "${hash_abbrev}" \
+                "${title}" \
+                "${author}" ;;
+        *) c=0; continue ;;
+    esac
+    c="$((c + 1))"
 done

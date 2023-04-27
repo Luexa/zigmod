@@ -1,13 +1,18 @@
 #!/bin/sh
 
-set -e
+set -eu
 
 tag="r$(./release_num.sh)"
-rev=$(git log --format=%h -1)
+rev="$(git log --format='%h' -1)"
+target="${1}"
 
-target=$1
+timecmd () {
+    if type time >/dev/null 2>&1; then
+        time "${@}"
+    else
+        "${@}"
+    fi
+}
 
-# TODO error if $target is empty
-
-echo "$tag.$rev $target"
-$(which time) zig build -Dtarget=$target -Duse-full-name -Dtag=$tag --prefix .
+printf '%s.%s %s\n' "${tag}" "${rev}" "${target}"
+timecmd zig build -Dtarget="${target}" -Duse-full-name -Dtag="${tag}" --prefix .
